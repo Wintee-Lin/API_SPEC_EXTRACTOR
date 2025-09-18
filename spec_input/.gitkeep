@@ -1,0 +1,3 @@
+touch spec_input/.gitkeep
+git add spec_input/.gitkeep
+git commit -m "chore: keep spec_input folder empty with .gitkeep"
