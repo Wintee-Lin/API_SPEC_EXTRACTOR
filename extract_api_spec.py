@@ -12,14 +12,23 @@ OUTPUT_DIR = (ROOT / "output").resolve()          # 輸出資料夾
 OUTPUT_XLSX = OUTPUT_DIR / "API_upload_.xlsx"     # 最終輸出檔名
 
 
+# ===== 目錄確保存在 =====
+def ensure_dirs():
+    """若缺少 spec_input / output 就自動建立"""
+    SPEC_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
 # ===== 清空 output =====
 def clean_output(dir_: Path):
     """建立並清空 output 目錄（刪除舊檔/舊資料夾）"""
     dir_.mkdir(parents=True, exist_ok=True)
     for p in dir_.iterdir():
         if p.is_file():
-            try: p.unlink()
-            except Exception: pass
+            try:
+                p.unlink()
+            except Exception:
+                pass
         elif p.is_dir():
             shutil.rmtree(p, ignore_errors=True)
 
@@ -32,9 +41,13 @@ def read_pdf_text(pdf: Path) -> str:
         for page in doc.pages:
             t = page.extract_text() or ""
             if t:
-                t = (t.replace("：", ":")
-                     .replace("（","(").replace("）",")")
-                     .replace("．",".").replace("－","-"))
+                t = (
+                    t.replace("：", ":")
+                    .replace("（", "(")
+                    .replace("）", ")")
+                    .replace("．", ".")
+                    .replace("－", "-")
+                )
                 lines.append(t.strip())
     return "\n".join(lines)
 
@@ -54,20 +67,23 @@ def find_urls(text: str) -> List[str]:
 # ===== 抓 URL 附近的多段 JSON =====
 def json_blocks_near(text: str, center: int, radius=30000, max_blocks=12) -> List[str]:
     """以 URL 位置為中心，往前後掃文字，擷取多段『平衡大括號』的 JSON"""
-    s = max(0, center - radius); e = min(len(text), center + radius)
+    s = max(0, center - radius)
+    e = min(len(text), center + radius)
     span = text[s:e]
     out, i = [], 0
     while len(out) < max_blocks:
         p = span.find("{", i)
-        if p == -1: break
+        if p == -1:
+            break
         depth, start = 0, p
         for j in range(p, len(span)):
             ch = span[j]
-            if ch == "{": depth += 1
+            if ch == "{":
+                depth += 1
             elif ch == "}":
                 depth -= 1
                 if depth == 0:
-                    raw = span[start:j+1].strip()
+                    raw = span[start : j + 1].strip()
                     if len(raw) > 50:
                         out.append(raw)
                     i = j + 1
@@ -82,6 +98,7 @@ def pick_io(blocks: List[str]) -> (str, str):
     def is_resp(b):
         t = b.lower()
         return any(k in t for k in ["msgrshdr", "rspcode", "responsejson", "error"])
+
     def is_req(b):
         t = b.lower()
         return any(k in t for k in ["securitycontext", "custid", "userid", "data", "body"]) and not is_resp(b)
@@ -96,14 +113,17 @@ def pick_io(blocks: List[str]) -> (str, str):
         out = max(rest, key=len) if rest else ""
 
     def norm(s):
-        try: return json.dumps(json.loads(s), ensure_ascii=False, indent=2)
-        except Exception: return s
+        try:
+            return json.dumps(json.loads(s), ensure_ascii=False, indent=2)
+        except Exception:
+            return s
 
     return norm(inp), norm(out)
 
 
 # ===== 主程式 =====
 def main():
+    ensure_dirs()           # 👈 新增：先確保兩個資料夾存在
     clean_output(OUTPUT_DIR)
 
     rows: List[Dict[str, str]] = []
@@ -112,8 +132,17 @@ def main():
     for pdf in sorted(SPEC_DIR.glob("*.pdf")):
         text = read_pdf_text(pdf)
         if not text.strip():
-            rows.append({"Index": idx, "FileName": pdf.name, "URL": "", "Method": "POST",
-                         "Input（上行 JSON）": "", "Response Code": "200", "Output（下行 JSON）": ""})
+            rows.append(
+                {
+                    "Index": idx,
+                    "FileName": pdf.name,
+                    "URL": "",
+                    "Method": "POST",
+                    "Input（上行 JSON）": "",
+                    "Response Code": "200",
+                    "Output（下行 JSON）": "",
+                }
+            )
             idx += 1
             continue
 
@@ -122,21 +151,32 @@ def main():
             m = re.search(re.escape(url), text)
             blocks = json_blocks_near(text, m.start()) if m else []
             inp, out = pick_io(blocks)
-            rows.append({
-                "Index": idx,
-                "FileName": pdf.name,
-                "URL": url,
-                "Method": "POST",
-                "Input（上行 JSON）": inp,
-                "Response Code": "200",
-                "Output（下行 JSON）": out,
-            })
+            rows.append(
+                {
+                    "Index": idx,
+                    "FileName": pdf.name,
+                    "URL": url,
+                    "Method": "POST",
+                    "Input（上行 JSON）": inp,
+                    "Response Code": "200",
+                    "Output（下行 JSON）": out,
+                }
+            )
             idx += 1
 
     # 存成 Excel
-    df = pd.DataFrame(rows, columns=[
-        "Index","FileName","URL","Method","Input（上行 JSON）","Response Code","Output（下行 JSON）"
-    ])
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "Index",
+            "FileName",
+            "URL",
+            "Method",
+            "Input（上行 JSON）",
+            "Response Code",
+            "Output（下行 JSON）",
+        ],
+    )
     with pd.ExcelWriter(OUTPUT_XLSX, engine="xlsxwriter") as w:
         df.to_excel(w, index=False, sheet_name="API")
         ws = w.sheets["API"]
