@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build
+build/
+dist/
+*.spec
+
+# 專案輸出/輸入資料
+spec_input/*
+!spec_input/.gitkeep
+output/*
+!output/.gitkeep
