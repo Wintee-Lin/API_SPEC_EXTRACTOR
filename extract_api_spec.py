@@ -21,9 +21,16 @@ def ensure_dirs():
 
 # ===== 清空 output =====
 def clean_output(dir_: Path):
-    """建立並清空 output 目錄（刪除舊檔/舊資料夾）"""
+    """
+    建立並清空 output 目錄（刪除舊檔/舊資料夾），
+    但保留以 . 開頭的檔案（例如 .gitkeep、.gitignore）
+    """
     dir_.mkdir(parents=True, exist_ok=True)
     for p in dir_.iterdir():
+        # 跳過 .gitkeep、.gitignore 等隱藏檔
+        if p.name.startswith("."):
+            continue
+
         if p.is_file():
             try:
                 p.unlink()
