@@ -1,9 +1,7 @@
 name: Build Windows EXE
 
 on:
-  push:
-    branches: [main] # 只要 push 到 main 分支就會觸發
-  workflow_dispatch: {} # 允許手動觸發
+  workflow_dispatch: {}   # 只手動觸發，不會每次 push 都跑
 
 jobs:
   build-windows:
@@ -21,18 +19,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if (Test-Path requirements.txt) {
-            pip install -r requirements.txt
-          }
+          pip install -r requirements.txt
           pip install pyinstaller
 
       - name: Build exe with PyInstaller
-        run: pyinstaller --onefile --name pdf2api pdf2api_excel_auto_index.py
+        run: pyinstaller --onefile --name api_extractor extract_api_spec.py
         shell: pwsh
 
       - name: Upload artifact (exe)
         uses: actions/upload-artifact@v4
         with:
-          name: pdf2api-windows
-          path: dist/pdf2api.exe
+          name: api_extractor-windows
+          path: dist/api_extractor.exe
           if-no-files-found: error
+
