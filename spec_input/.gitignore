@@ -1,7 +1,10 @@
-# 忽略 input/output 內所有檔案
+# 忽略 mac 系統檔
+.DS_Store
+
+# 忽略 spec_input/output 內所有檔案
 spec_input/*
 output/*
 
-# 但保留資料夾（用 .gitkeep 佔位）
+# 但保留 .gitkeep（讓資料夾存在）
 !spec_input/.gitkeep
 !output/.gitkeep
