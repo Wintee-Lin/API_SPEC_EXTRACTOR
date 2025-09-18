@@ -1,0 +1,7 @@
+# 忽略 input/output 內所有檔案
+spec_input/*
+output/*
+
+# 但保留資料夾（用 .gitkeep 佔位）
+!spec_input/.gitkeep
+!output/.gitkeep
